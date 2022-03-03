@@ -1,5 +1,5 @@
-using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class RoomGenerator : MonoBehaviour
@@ -8,12 +8,20 @@ public class RoomGenerator : MonoBehaviour
     [SerializeField] private int _ySize;
     [SerializeField] private int _zSize;
 
+    private List<Room> _rooms;
     private bool[,,] _isCellTaken;
 
-    private void Start()
+    public void Start()
     {
+        ClearRooms();
+        InitializeRoomsList();
         InitializeTakenCellsArray();
         GenerateRooms();
+    }
+
+    private void InitializeRoomsList()
+    {
+        _rooms = new List<Room>();
     }
 
     private void InitializeTakenCellsArray()
@@ -48,6 +56,8 @@ public class RoomGenerator : MonoBehaviour
 
                             room.SetSize(size);
                             room.InstantiateRoom();
+                            
+                            _rooms.Add(room);
                         }
                     }
                 }
@@ -84,5 +94,15 @@ public class RoomGenerator : MonoBehaviour
         }
 
         return true;
+    }
+
+    public void ClearRooms()
+    {
+        foreach (var room in _rooms.Where(room => room != null))
+        {
+            DestroyImmediate(room.gameObject);
+        }
+
+        _rooms.Clear();
     }
 }

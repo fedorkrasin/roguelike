@@ -4,9 +4,22 @@ using UnityEngine;
 
 public class RoomGenerator : MonoBehaviour
 {
-    [SerializeField] private int _xSize;
-    [SerializeField] private int _ySize;
-    [SerializeField] private int _zSize;
+    [SerializeField] private Transform _roomsParent;
+    
+    [Header("Map")]
+    [SerializeField] private int _mapXSize;
+    [SerializeField] private int _mapYSize;
+    [SerializeField] private int _mapZSize;
+
+    [Header("Generating Step")] 
+    [SerializeField] private int _xStep;
+    [SerializeField] private int _yStep;
+    [SerializeField] private int _zStep;
+
+    [Header("Rooms")]
+    [SerializeField] private int _maxRoomXSize;
+    [SerializeField] private int _maxRoomYSize;
+    [SerializeField] private int _maxRoomZSize;
 
     private List<Room> _rooms;
     private bool[,,] _isCellTaken;
@@ -26,41 +39,24 @@ public class RoomGenerator : MonoBehaviour
 
     private void InitializeTakenCellsArray()
     {
-        _isCellTaken = new bool[_xSize, _ySize, _zSize];
+        _isCellTaken = new bool[_mapXSize, _mapYSize, _mapZSize];
     }
 
     private void GenerateRooms()
     {
-        for (var y = 0; y < _ySize; y++)
+        for (var y = 0; y < _mapYSize; y += _yStep)
+        for (var z = 0; z < _mapZSize; z += _zStep)
+        for (var x = 0; x < _mapXSize; x += _xStep)
         {
-            for (var z = 0; z < _zSize; z+=7)
+            if (Random.Range(0, 10) != 2) continue;
+            
+            var position = new Vector3(x, y, z);
+            var size = GetRandomRoomSize();
+
+            if (AreCellsEmpty(position, size))
             {
-                for (var x = 0; x < _xSize; x+=7)
-                {
-                    if (Random.Range(0, 10) == 2)
-                    {
-                        var xSize = Random.Range(1, 8);
-                        var ySize = Random.Range(1, 4);
-                        var zSize = Random.Range(1, 8);
-
-                        var position = new Vector3(x, y, z);
-                        var size = new Vector3(xSize, ySize, zSize);
-                        
-                        if (AreCellsEmpty(position, size))
-                        {
-                            TakeCells(position, size);
-
-                            var room = new GameObject().AddComponent<Room>();
-                            room.gameObject.name = "Room";
-                            room.transform.position = position;
-
-                            room.SetSize(size);
-                            room.InstantiateRoom();
-                            
-                            _rooms.Add(room);
-                        }
-                    }
-                }
+                TakeCells(position, size);
+                InstantiateRoom(position, size);
             }
         }
     }
@@ -104,5 +100,22 @@ public class RoomGenerator : MonoBehaviour
         }
 
         _rooms.Clear();
+    }
+
+    private void InstantiateRoom(Vector3 position, Vector3 size)
+    {
+        var room = new GameObject().AddComponent<Room>();
+        room.gameObject.name = "Room";
+        room.transform.position = position;
+        room.transform.parent = _roomsParent;
+        room.SetSize(size);
+        room.InstantiateRoom();
+        _rooms.Add(room);
+    }
+
+    private Vector3 GetRandomRoomSize()
+    {
+        return new Vector3(Random.Range(1, _maxRoomXSize), Random.Range(1, _maxRoomYSize),
+            Random.Range(1, _maxRoomZSize));
     }
 }

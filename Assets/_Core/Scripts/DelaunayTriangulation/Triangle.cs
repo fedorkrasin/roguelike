@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class Triangle : MonoBehaviour
+public class Triangle
 {
     public Point[] Vertices { get; } = new Point[3];
     public Point Circumcenter { get; private set; }

@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Edge : MonoBehaviour
+public class Edge
 {
     public Point Point1 { get; }
     public Point Point2 { get; }

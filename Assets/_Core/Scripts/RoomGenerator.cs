@@ -94,12 +94,15 @@ public class RoomGenerator : MonoBehaviour
 
     public void ClearRooms()
     {
-        foreach (var room in _rooms.Where(room => room != null))
+        if (_rooms != null)
         {
-            DestroyImmediate(room.gameObject);
-        }
+            foreach (var room in _rooms.Where(room => room != null))
+            {
+                DestroyImmediate(room.gameObject);
+            }
 
-        _rooms.Clear();
+            _rooms.Clear();
+        }
     }
 
     private void InstantiateRoom(Vector3 position, Vector3 size)

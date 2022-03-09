@@ -50,7 +50,7 @@ public static class DelaunayTriangulator
 
     private static ISet<Triangle> FindBadTriangles(Point point, HashSet<Triangle> triangles)
     {
-        var badTriangles = triangles.Where(o => o.IsPointInsideCircumcircle(point));
+        var badTriangles = triangles.Where(o => o.IsPointInsideCircumsphere(point));
         return new HashSet<Triangle>(badTriangles);
     }
 }

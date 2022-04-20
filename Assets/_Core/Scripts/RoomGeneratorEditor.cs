@@ -10,6 +10,8 @@ public class RoomGeneratorEditor : Editor
     {
         base.OnInspectorGUI();
         var generator = (RoomGenerator) target;
+        
+        GUILayout.Space(20);
 
         if (GUILayout.Button("Generate Rooms"))
         {

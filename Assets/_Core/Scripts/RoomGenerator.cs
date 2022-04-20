@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 public class RoomGenerator : MonoBehaviour
 {
@@ -30,7 +32,37 @@ public class RoomGenerator : MonoBehaviour
         InitializeRoomsList();
         InitializeTakenCellsArray();
         GenerateRooms();
+
+        var points = _rooms.Select(room => new Point(room.transform.position)).ToList();
+        Debug.Log(points.Count);
+        
+        var triangles = DelaunayTriangulator.BowyerWatson(points);
+        Debug.Log(triangles.Count);
+        
+        var i = 0;
+        foreach (var t in triangles)
+        {
+            Debug.Log($"triangle: {t.Vertices[0]}; {t.Vertices[1]}; {t.Vertices[2]}");
+        }
     }
+
+    // private void OnDrawGizmosSelected()
+    // {
+    //     var points = _rooms.Select(room => new Point(room.transform.position)).ToList();
+    //     Debug.Log(points.Count);
+    //     
+    //     var triangles = DelaunayTriangulator.BowyerWatson(points);
+    //     Debug.Log(triangles.Count);
+    //     
+    //     var i = 0;
+    //     foreach (var t in triangles)
+    //     {
+    //         Debug.Log($"triangle: {t.Vertices[0]}; {t.Vertices[1]}; {t.Vertices[2]}");
+    //         Gizmos.DrawLine(t.Vertices[0].ToVector3(), t.Vertices[1].ToVector3());
+    //         Gizmos.DrawLine(t.Vertices[0].ToVector3(), t.Vertices[2].ToVector3());
+    //         Gizmos.DrawLine(t.Vertices[1].ToVector3(), t.Vertices[2].ToVector3());
+    //     }
+    // }
 
     private void InitializeRoomsList()
     {

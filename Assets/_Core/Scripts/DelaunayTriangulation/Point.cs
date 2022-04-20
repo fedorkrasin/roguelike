@@ -23,10 +23,12 @@ public class Point
         Y = vector.y;
         Z = vector.z;
     }
+    
+    public Vector3 ToVector3() => new Vector3(X, Y, Z);
 
     public static Point operator +(Point a, Point b)
     {
-        return new Point(a.X - b.X, a.Y - b.Y, a.Z - b.Z);
+        return new Point(a.X + b.X, a.Y + b.Y, a.Z + b.Z);
     }
 
     public static Point operator -(Point a, Point b)
@@ -34,6 +36,9 @@ public class Point
         return new Point(a.X - b.X, a.Y - b.Y, a.Z - b.Z);
     }
 
-    public Vector3 ToVector3() => new Vector3(X, Y, Z);
+    public override string ToString()
+    {
+        return $"(x: {X}, y: {Y}, z: {Z})";
+    }
 }
 

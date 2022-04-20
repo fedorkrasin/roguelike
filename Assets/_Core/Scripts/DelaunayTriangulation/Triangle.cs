@@ -7,8 +7,8 @@ using UnityEngine;
 public class Triangle
 {
     public Point[] Vertices { get; } = new Point[3];
-    public Point Circumcenter { get; private set; }
-    public float RadiusSquared;
+    private Point Circumcenter { get; set; }
+    private float circumsphereRadius;
 
     public Triangle(Point point1, Point point2, Point point3)
     {
@@ -64,11 +64,9 @@ public class Triangle
         var toCircumsphereCenter =
             (Vector3.Cross(abXac, ab.ToVector3()) * ac.ToVector3().sqrMagnitude +
              Vector3.Cross(ac.ToVector3(), abXac) * ab.ToVector3().sqrMagnitude) / (2f * abXac.sqrMagnitude);
-        
-        var circumsphereRadius = toCircumsphereCenter.magnitude;
 
-        Circumcenter = new Point(toCircumsphereCenter);
-        RadiusSquared = Mathf.Pow(circumsphereRadius, 2);
+        Circumcenter = new Point(a.ToVector3() + toCircumsphereCenter);
+        circumsphereRadius = toCircumsphereCenter.magnitude;
     }
 
     private bool IsCounterClockwise(Point point1, Point point2, Point point3)
@@ -84,8 +82,8 @@ public class Triangle
         return sharedVertices == 2;
     }
 
-    public bool IsPointInsideCircumcircle(Point point)
+    public bool IsPointInsideCircumsphere(Point point)
     {
-        return Vector3.Distance(Circumcenter.ToVector3(), point.ToVector3()) < Mathf.Sqrt(RadiusSquared);
+        return Vector3.Distance(Circumcenter.ToVector3(), point.ToVector3()) < circumsphereRadius;
     }
 }

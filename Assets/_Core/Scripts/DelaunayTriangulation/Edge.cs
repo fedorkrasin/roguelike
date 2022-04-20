@@ -1,26 +1,48 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-
-public class Edge
+namespace _Core.Scripts.DelaunayTriangulation
 {
-    public Point Point1 { get; }
-    public Point Point2 { get; }
-
-    public Edge(Point point1, Point point2)
+    public class Edge
     {
-        Point1 = point1;
-        Point2 = point2;
-    }
-    
-    public override bool Equals(object obj)
-    {
-        if (obj == null) return false;
-        if (obj.GetType() != GetType()) return false;
-        var edge = obj as Edge;
+        public Point Point1 { get; set; }
+        public Point Point2 { get; set; }
 
-        var samePoints = Point1 == edge.Point1 && Point2 == edge.Point2;
-        var samePointsReversed = Point1 == edge.Point2 && Point2 == edge.Point1;
-        return samePoints || samePointsReversed;
+        public Edge(Point point1, Point point2)
+        {
+            Point1 = point1;
+            Point2 = point2;
+        }
+
+        public static bool operator ==(Edge left, Edge right)
+        {
+            return (left.Point1 == right.Point1 || left.Point1 == right.Point2)
+                   && (left.Point2 == right.Point1 || left.Point2 == right.Point2);
+        }
+
+        public static bool operator !=(Edge left, Edge right)
+        {
+            return !(left == right);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is Edge e)
+            {
+                return this == e;
+            }
+
+            return false;
+        }
+
+        public override int GetHashCode()
+        {
+            return Point1.GetHashCode() ^ Point2.GetHashCode();
+        }
+
+        public static bool AlmostEqual(Edge left, Edge right)
+        {
+            return (DelaunayTriangulation.ArePointsEqual(left.Point1, right.Point1) ||
+                    DelaunayTriangulation.ArePointsEqual(left.Point2, right.Point1))
+                   && (DelaunayTriangulation.ArePointsEqual(left.Point1, right.Point2) ||
+                       DelaunayTriangulation.ArePointsEqual(left.Point2, right.Point1));
+        }
     }
 }

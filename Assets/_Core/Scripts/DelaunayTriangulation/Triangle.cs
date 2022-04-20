@@ -1,89 +1,64 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using UnityEngine;
-
-public class Triangle
+namespace _Core.Scripts.DelaunayTriangulation
 {
-    public Point[] Vertices { get; } = new Point[3];
-    private Point Circumcenter { get; set; }
-    private float circumsphereRadius;
-
-    public Triangle(Point point1, Point point2, Point point3)
+    public class Triangle
     {
-        if (point1 == point2 || point1 == point3 || point2 == point3)
-        {
-            throw new ArgumentException("Must be 3 distinct points");
-        }
+        public Point[] Vertices { get; } = new Point[3];
 
-        if (!IsCounterClockwise(point1, point2, point3))
+        public bool IsBad { get; set; }
+
+        public Triangle(Point point1, Point point2, Point point3)
         {
             Vertices[0] = point1;
             Vertices[1] = point3;
             Vertices[2] = point2;
         }
-        else
+
+        public static bool operator ==(Triangle left, Triangle right)
         {
-            Vertices[0] = point1;
-            Vertices[1] = point2;
-            Vertices[2] = point3;
+            return (left.Vertices[0] == right.Vertices[0] || left.Vertices[0] == right.Vertices[1] ||
+                    left.Vertices[0] == right.Vertices[2])
+                   && (left.Vertices[1] == right.Vertices[0] || left.Vertices[1] == right.Vertices[1] ||
+                       left.Vertices[1] == right.Vertices[2])
+                   && (left.Vertices[2] == right.Vertices[0] || left.Vertices[2] == right.Vertices[1] ||
+                       left.Vertices[2] == right.Vertices[2]);
         }
 
-        Vertices[0].AdjacentTriangles.Add(this);
-        Vertices[1].AdjacentTriangles.Add(this);
-        Vertices[2].AdjacentTriangles.Add(this);
-        UpdateCircumsphere();
-    }
-
-    public IEnumerable<Triangle> TrianglesWithSharedEdge
-    {
-        get
+        public static bool operator !=(Triangle left, Triangle right)
         {
-            var neighbors = new HashSet<Triangle>();
-            foreach (var vertex in Vertices)
+            return !(left == right);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is Triangle e)
             {
-                var trianglesWithSharedEdge = vertex.AdjacentTriangles.Where(o => o != this && SharesEdgeWith(o));
-                neighbors.UnionWith(trianglesWithSharedEdge);
+                return this == e;
             }
 
-            return neighbors;
+            return false;
         }
-    }
 
-    private void UpdateCircumsphere()
-    {
-        var a = Vertices[0];
-        var b = Vertices[1];
-        var c = Vertices[2];
+        public override int GetHashCode()
+        {
+            return Vertices[0].GetHashCode() ^ Vertices[1].GetHashCode() ^ Vertices[2].GetHashCode();
+        }
 
-        var ac = c - a;
-        var ab = b - a;
-        var abXac = Vector3.Cross(ab.ToVector3(), ac.ToVector3());
+        public static bool AlmostEqual(Triangle left, Triangle right)
+        {
+            return (DelaunayTriangulation.ArePointsEqual(left.Vertices[0], right.Vertices[0]) ||
+                    DelaunayTriangulation.ArePointsEqual(left.Vertices[0], right.Vertices[1]) ||
+                    DelaunayTriangulation.ArePointsEqual(left.Vertices[0], right.Vertices[2]))
+                   && (DelaunayTriangulation.ArePointsEqual(left.Vertices[1], right.Vertices[0]) ||
+                       DelaunayTriangulation.ArePointsEqual(left.Vertices[1], right.Vertices[1]) ||
+                       DelaunayTriangulation.ArePointsEqual(left.Vertices[1], right.Vertices[2]))
+                   && (DelaunayTriangulation.ArePointsEqual(left.Vertices[2], right.Vertices[0]) ||
+                       DelaunayTriangulation.ArePointsEqual(left.Vertices[2], right.Vertices[1]) ||
+                       DelaunayTriangulation.ArePointsEqual(left.Vertices[2], right.Vertices[2]));
+        }
 
-        var toCircumsphereCenter =
-            (Vector3.Cross(abXac, ab.ToVector3()) * ac.ToVector3().sqrMagnitude +
-             Vector3.Cross(ac.ToVector3(), abXac) * ab.ToVector3().sqrMagnitude) / (2f * abXac.sqrMagnitude);
-
-        Circumcenter = new Point(a.ToVector3() + toCircumsphereCenter);
-        circumsphereRadius = toCircumsphereCenter.magnitude;
-    }
-
-    private bool IsCounterClockwise(Point point1, Point point2, Point point3)
-    {
-        var result = (point2.X - point1.X) * (point3.Y - point1.Y) -
-                     (point3.X - point1.X) * (point2.Y - point1.Y);
-        return result > 0;
-    }
-
-    private bool SharesEdgeWith(Triangle triangle)
-    {
-        var sharedVertices = Vertices.Count(o => triangle.Vertices.Contains(o));
-        return sharedVertices == 2;
-    }
-
-    public bool IsPointInsideCircumsphere(Point point)
-    {
-        return Vector3.Distance(Circumcenter.ToVector3(), point.ToVector3()) < circumsphereRadius;
+        public override string ToString()
+        {
+            return $"Triangle: {Vertices[0]}; {Vertices[1]}; {Vertices[2]}";
+        }
     }
 }

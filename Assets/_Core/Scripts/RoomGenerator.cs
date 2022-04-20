@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using _Core.Scripts.DelaunayTriangulation;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -36,33 +37,27 @@ public class RoomGenerator : MonoBehaviour
         var points = _rooms.Select(room => new Point(room.transform.position)).ToList();
         Debug.Log(points.Count);
         
-        var triangles = DelaunayTriangulator.BowyerWatson(points);
-        Debug.Log(triangles.Count);
-        
-        var i = 0;
-        foreach (var t in triangles)
-        {
-            Debug.Log($"triangle: {t.Vertices[0]}; {t.Vertices[1]}; {t.Vertices[2]}");
-        }
+        var delaunay3D = DelaunayTriangulation.Triangulate(points);
     }
 
-    // private void OnDrawGizmosSelected()
-    // {
-    //     var points = _rooms.Select(room => new Point(room.transform.position)).ToList();
-    //     Debug.Log(points.Count);
-    //     
-    //     var triangles = DelaunayTriangulator.BowyerWatson(points);
-    //     Debug.Log(triangles.Count);
-    //     
-    //     var i = 0;
-    //     foreach (var t in triangles)
-    //     {
-    //         Debug.Log($"triangle: {t.Vertices[0]}; {t.Vertices[1]}; {t.Vertices[2]}");
-    //         Gizmos.DrawLine(t.Vertices[0].ToVector3(), t.Vertices[1].ToVector3());
-    //         Gizmos.DrawLine(t.Vertices[0].ToVector3(), t.Vertices[2].ToVector3());
-    //         Gizmos.DrawLine(t.Vertices[1].ToVector3(), t.Vertices[2].ToVector3());
-    //     }
-    // }
+    private void OnDrawGizmosSelected()
+    {
+        var points = _rooms.Select(room => new Point(room.transform.position)).ToList();
+        Debug.Log(points.Count);
+        
+        var delaunay3D = DelaunayTriangulation.Triangulate(points);
+        Debug.Log(delaunay3D.Triangles.Count);
+        
+        Gizmos.color = Color.green;
+
+        foreach (var t in delaunay3D.Triangles)
+        {
+            Debug.Log(t);
+            Gizmos.DrawLine(t.Vertices[0].Position, t.Vertices[1].Position);
+            Gizmos.DrawLine(t.Vertices[0].Position, t.Vertices[2].Position);
+            Gizmos.DrawLine(t.Vertices[1].Position, t.Vertices[2].Position);
+        }
+    }
 
     private void InitializeRoomsList()
     {

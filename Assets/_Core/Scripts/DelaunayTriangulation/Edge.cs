@@ -1,9 +1,13 @@
+using UnityEngine;
+
 namespace _Core.Scripts.DelaunayTriangulation
 {
     public class Edge
     {
         public Point Point1 { get; set; }
         public Point Point2 { get; set; }
+
+        public float Lenght => Vector3.Distance(Point1.Position, Point2.Position);
 
         public Edge(Point point1, Point point2)
         {

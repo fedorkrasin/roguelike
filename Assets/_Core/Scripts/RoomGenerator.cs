@@ -45,18 +45,23 @@ public class RoomGenerator : MonoBehaviour
         var points = _rooms.Select(room => new Point(room.transform.position)).ToList();
         Debug.Log(points.Count);
         
-        var delaunay3D = DelaunayTriangulation.Triangulate(points);
-        Debug.Log(delaunay3D.Triangles.Count);
+        var triangulation = DelaunayTriangulation.Triangulate(points);
         
-        Gizmos.color = Color.green;
+        Gizmos.color = Color.red;
 
-        foreach (var t in delaunay3D.Triangles)
-        {
-            Debug.Log(t);
-            Gizmos.DrawLine(t.Vertices[0].Position, t.Vertices[1].Position);
-            Gizmos.DrawLine(t.Vertices[0].Position, t.Vertices[2].Position);
-            Gizmos.DrawLine(t.Vertices[1].Position, t.Vertices[2].Position);
-        }
+        // foreach (var t in triangulation.Triangles)
+        // {
+        //     Gizmos.DrawLine(t.Vertices[0].Position, t.Vertices[1].Position);
+        //     Gizmos.DrawLine(t.Vertices[0].Position, t.Vertices[2].Position);
+        //     Gizmos.DrawLine(t.Vertices[1].Position, t.Vertices[2].Position);
+        // }
+
+        var mst = MinimumSpanningTree.Build(triangulation);
+
+        // foreach (var edge in mst)
+        // {
+        //     Gizmos.DrawLine(edge.Point1.Position, edge.Point2.Position);
+        // }
     }
 
     private void InitializeRoomsList()

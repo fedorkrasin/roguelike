@@ -24,30 +24,25 @@ public class RoomGenerator : MonoBehaviour
     [SerializeField] private int _maxRoomYSize;
     [SerializeField] private int _maxRoomZSize;
 
+    [Space]
+    [Range(0, 1)]
+    [SerializeField] private float _corridorGeneratingChance;
+
     private List<Room> _rooms;
+    private List<Edge> _corridors;
     private bool[,,] _isCellTaken;
 
     public void Start()
     {
         ClearRooms();
-        InitializeRoomsList();
-        InitializeTakenCellsArray();
+        ClearCorridors();
         GenerateRooms();
-
-        var points = _rooms.Select(room => new Point(room.transform.position)).ToList();
-        Debug.Log(points.Count);
-        
-        var delaunay3D = DelaunayTriangulation.Triangulate(points);
+        BuildCorridors();
     }
 
     private void OnDrawGizmosSelected()
     {
-        var points = _rooms.Select(room => new Point(room.transform.position)).ToList();
-        Debug.Log(points.Count);
-        
-        var triangulation = DelaunayTriangulation.Triangulate(points);
-        
-        Gizmos.color = Color.red;
+        Gizmos.color = Color.green;
 
         // foreach (var t in triangulation.Triangles)
         // {
@@ -55,27 +50,23 @@ public class RoomGenerator : MonoBehaviour
         //     Gizmos.DrawLine(t.Vertices[0].Position, t.Vertices[2].Position);
         //     Gizmos.DrawLine(t.Vertices[1].Position, t.Vertices[2].Position);
         // }
-
-        var mst = MinimumSpanningTree.Build(triangulation);
-
+        
         // foreach (var edge in mst)
         // {
         //     Gizmos.DrawLine(edge.Point1.Position, edge.Point2.Position);
         // }
-    }
 
-    private void InitializeRoomsList()
-    {
-        _rooms = new List<Room>();
+        foreach (var corridor in _corridors)
+        {
+            Gizmos.DrawLine(corridor.Point1.Position, corridor.Point2.Position);
+        }
     }
-
-    private void InitializeTakenCellsArray()
-    {
-        _isCellTaken = new bool[_mapXSize, _mapYSize, _mapZSize];
-    }
-
+    
     private void GenerateRooms()
     {
+        _rooms = new List<Room>();
+        _isCellTaken = new bool[_mapXSize, _mapYSize, _mapZSize];
+        
         for (var y = 0; y < _mapYSize; y += _yStep)
         for (var z = 0; z < _mapZSize; z += _zStep)
         for (var x = 0; x < _mapXSize; x += _xStep)
@@ -137,6 +128,11 @@ public class RoomGenerator : MonoBehaviour
         }
     }
 
+    public void ClearCorridors()
+    {
+        _corridors?.Clear();
+    }
+
     private void InstantiateRoom(Vector3 position, Vector3 size)
     {
         var room = new GameObject().AddComponent<Room>();
@@ -152,5 +148,27 @@ public class RoomGenerator : MonoBehaviour
     {
         return new Vector3(Random.Range(1, _maxRoomXSize), Random.Range(1, _maxRoomYSize),
             Random.Range(1, _maxRoomZSize));
+    }
+
+    private void BuildCorridors()
+    {
+        var roomPoints = _rooms.Select(room => new Point(room.transform.position)).ToList();
+        var roomsTriangulation = DelaunayTriangulation.Triangulate(roomPoints);
+        var roomsMst = MinimumSpanningTree.Build(roomsTriangulation);
+
+        _corridors = new List<Edge>(roomsMst);
+
+        foreach (var edge in roomsTriangulation.Edges)
+        {
+            if (Random.Range(0f, 1f) < _corridorGeneratingChance)
+            {
+                var inverseEdge = new Edge(edge.Point1, edge.Point2);
+
+                if (!_corridors.Contains(edge) || !_corridors.Contains(inverseEdge))
+                {
+                    _corridors.Add(edge);
+                }
+            }
+        }
     }
 }

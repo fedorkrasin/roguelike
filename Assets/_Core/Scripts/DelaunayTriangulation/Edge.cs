@@ -7,6 +7,7 @@ namespace _Core.Scripts.DelaunayTriangulation
         public Point Point1 { get; set; }
         public Point Point2 { get; set; }
 
+        public Vector3 Center => (Point1.Position + Point2.Position) / 2;
         public float Lenght => Vector3.Distance(Point1.Position, Point2.Position);
 
         public Edge(Point point1, Point point2)

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using _Core.Scripts;
 using _Core.Scripts.DelaunayTriangulation;
 using UnityEngine;
 using Random = UnityEngine.Random;
@@ -8,6 +9,7 @@ using Random = UnityEngine.Random;
 public class RoomGenerator : MonoBehaviour
 {
     [SerializeField] private Transform _roomsParent;
+    [SerializeField] private Transform _corridorsParent;
     
     [Header("Map")]
     [SerializeField] private int _mapXSize;
@@ -29,7 +31,7 @@ public class RoomGenerator : MonoBehaviour
     [SerializeField] private float _corridorGeneratingChance;
 
     private List<Room> _rooms;
-    private List<Edge> _corridors;
+    private List<Corridor> _corridors;
     private bool[,,] _isCellTaken;
 
     public void Start()
@@ -37,7 +39,7 @@ public class RoomGenerator : MonoBehaviour
         ClearRooms();
         ClearCorridors();
         GenerateRooms();
-        BuildCorridors();
+        GenerateCorridors();
     }
 
     private void OnDrawGizmosSelected()
@@ -58,7 +60,7 @@ public class RoomGenerator : MonoBehaviour
 
         foreach (var corridor in _corridors)
         {
-            Gizmos.DrawLine(corridor.Point1.Position, corridor.Point2.Position);
+            Gizmos.DrawLine(corridor.Start, corridor.End);
         }
     }
     
@@ -114,25 +116,7 @@ public class RoomGenerator : MonoBehaviour
 
         return true;
     }
-
-    public void ClearRooms()
-    {
-        if (_rooms != null)
-        {
-            foreach (var room in _rooms.Where(room => room != null))
-            {
-                DestroyImmediate(room.gameObject);
-            }
-
-            _rooms.Clear();
-        }
-    }
-
-    public void ClearCorridors()
-    {
-        _corridors?.Clear();
-    }
-
+    
     private void InstantiateRoom(Vector3 position, Vector3 size)
     {
         var room = new GameObject().AddComponent<Room>();
@@ -150,13 +134,23 @@ public class RoomGenerator : MonoBehaviour
             Random.Range(1, _maxRoomZSize));
     }
 
-    private void BuildCorridors()
+    private void GenerateCorridors()
     {
         var roomPoints = _rooms.Select(room => new Point(room.transform.position)).ToList();
         var roomsTriangulation = DelaunayTriangulation.Triangulate(roomPoints);
         var roomsMst = MinimumSpanningTree.Build(roomsTriangulation);
 
-        _corridors = new List<Edge>(roomsMst);
+        var corridors = new List<Edge>(roomsMst);
+
+        foreach (var edge in corridors)
+        {
+            var corridor = new GameObject().AddComponent<Corridor>();
+            corridor.name = "Corridor";
+            corridor.transform.position = edge.Center;
+            corridor.transform.parent = _corridorsParent;
+            corridor.SetParameters(edge);
+            _corridors.Add(corridor);
+        }
 
         foreach (var edge in roomsTriangulation.Edges)
         {
@@ -164,11 +158,49 @@ public class RoomGenerator : MonoBehaviour
             {
                 var inverseEdge = new Edge(edge.Point1, edge.Point2);
 
-                if (!_corridors.Contains(edge) || !_corridors.Contains(inverseEdge))
+                if (!corridors.Contains(edge) && !corridors.Contains(inverseEdge))
                 {
-                    _corridors.Add(edge);
+                    corridors.Add(edge);
+                    var corridor = new GameObject().AddComponent<Corridor>();
+                    corridor.name = "Corridor";
+                    corridor.transform.position = edge.Center;
+                    corridor.transform.parent = _corridorsParent;
+                    corridor.SetParameters(edge);
+                    _corridors.Add(corridor);
                 }
             }
+        }
+    }
+    
+    public void ClearMap()
+    {
+        ClearRooms();
+        ClearCorridors();
+    }
+
+    private void ClearRooms()
+    {
+        if (_rooms != null)
+        {
+            foreach (var room in _rooms.Where(room => room != null))
+            {
+                DestroyImmediate(room.gameObject);
+            }
+
+            _rooms.Clear();
+        }
+    }
+
+    private void ClearCorridors()
+    {
+        if (_corridors != null)
+        {
+            foreach (var corridor in _corridors.Where(corridor => corridor != null))
+            {
+                DestroyImmediate(corridor.gameObject);
+            }
+
+            _corridors.Clear();
         }
     }
 }

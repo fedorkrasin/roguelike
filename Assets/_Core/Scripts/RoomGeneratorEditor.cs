@@ -18,9 +18,9 @@ public class RoomGeneratorEditor : Editor
             generator.Start();
         }
         
-        if (GUILayout.Button("Clear Rooms"))
+        if (GUILayout.Button("Clear Map"))
         {
-            generator.ClearRooms();
+            generator.ClearMap();
         }
     }
 }

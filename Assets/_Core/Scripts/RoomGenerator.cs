@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using _Core.Scripts;
 using _Core.Scripts.DelaunayTriangulation;
+using _Core.Scripts.DungeonPathfinder;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -201,6 +202,131 @@ public class RoomGenerator : MonoBehaviour
             }
 
             _corridors.Clear();
+        }
+    }
+    
+    private void CalculateCorridors() 
+    {
+        var aStar = new Pathfinder(size);
+
+        foreach (var corridor in _corridors) {
+            var startRoom = (corridor.Start as Vertex<Room>).Item;
+            var endRoom = (corridor.End as Vertex<Room>).Item;
+
+            var startPosf = startRoom.bounds.center;
+            var endPosf = endRoom.bounds.center;
+            var startPos = new Vector3Int((int)startPosf.x, (int)startPosf.y, (int)startPosf.z);
+            var endPos = new Vector3Int((int)endPosf.x, (int)endPosf.y, (int)endPosf.z);
+
+            var path = aStar.FindPath(startPos, endPos, (Node a, Node b) => {
+                var pathCost = new PathCost();
+
+                var delta = b.Position - a.Position;
+
+                if (delta.y == 0) {
+                    //flat hallway
+                    pathCost.cost = Vector3Int.Distance(b.Position, endPos);    //heuristic
+
+                    if (grid[b.Position] == CellType.Stairs) {
+                        return pathCost;
+                    } else if (grid[b.Position] == CellType.Room) {
+                        pathCost.cost += 5;
+                    } else if (grid[b.Position] == CellType.None) {
+                        pathCost.cost += 1;
+                    }
+
+                    pathCost.traversable = true;
+                } else {
+                    //staircase
+                    if ((grid[a.Position] != CellType.None && grid[a.Position] != CellType.Corridor)
+                        || (grid[b.Position] != CellType.None && grid[b.Position] != CellType.Corridor)) return pathCost;
+
+                    pathCost.cost = 100 + Vector3Int.Distance(b.Position, endPos);    //base cost + heuristic
+
+                    int xDir = Mathf.Clamp(delta.x, -1, 1);
+                    int zDir = Mathf.Clamp(delta.z, -1, 1);
+                    Vector3Int verticalOffset = new Vector3Int(0, delta.y, 0);
+                    Vector3Int horizontalOffset = new Vector3Int(xDir, 0, zDir);
+
+                    if (!grid.InBounds(a.Position + verticalOffset)
+                        || !grid.InBounds(a.Position + horizontalOffset)
+                        || !grid.InBounds(a.Position + verticalOffset + horizontalOffset)) {
+                        return pathCost;
+                    }
+
+                    if (grid[a.Position + horizontalOffset] != CellType.None
+                        || grid[a.Position + horizontalOffset * 2] != CellType.None
+                        || grid[a.Position + verticalOffset + horizontalOffset] != CellType.None
+                        || grid[a.Position + verticalOffset + horizontalOffset * 2] != CellType.None) {
+                        return pathCost;
+                    }
+
+                    pathCost.traversable = true;
+                    pathCost.isStairs = true;
+                }
+
+                return pathCost;
+            });
+
+            if (path != null) {
+                for (int i = 0; i < path.Count; i++) {
+                    var current = path[i];
+
+                    if (grid[current] == CellType.None) {
+                        grid[current] = CellType.Hallway;
+                    }
+
+                    if (i > 0) {
+                        var prev = path[i - 1];
+
+                        var delta = current - prev;
+
+                        if (delta.y != 0) {
+                            int xDir = Mathf.Clamp(delta.x, -1, 1);
+                            int zDir = Mathf.Clamp(delta.z, -1, 1);
+                            Vector3Int verticalOffset = new Vector3Int(0, delta.y, 0);
+                            Vector3Int horizontalOffset = new Vector3Int(xDir, 0, zDir);
+                            
+                            grid[prev + horizontalOffset] = CellType.Stairs;
+                            grid[prev + horizontalOffset * 2] = CellType.Stairs;
+                            grid[prev + verticalOffset + horizontalOffset] = CellType.Stairs;
+                            grid[prev + verticalOffset + horizontalOffset * 2] = CellType.Stairs;
+
+                            PlaceStairs(prev + horizontalOffset);
+                            PlaceStairs(prev + horizontalOffset * 2);
+                            PlaceStairs(prev + verticalOffset + horizontalOffset);
+                            PlaceStairs(prev + verticalOffset + horizontalOffset * 2);
+                        }
+
+                        Debug.DrawLine(prev + new Vector3(0.5f, 0.5f, 0.5f), current + new Vector3(0.5f, 0.5f, 0.5f), Color.blue, 100, false);
+                    }
+                }
+
+                foreach (var pos in path) {
+                    if (grid[pos] == CellType.Hallway) {
+                        PlaceHallway(pos);
+                    }
+                }
+            }
+        }
+        
+        void PlaceCube(Vector3Int location, Vector3Int size, Material material) 
+        {
+            var go = Instantiate(cubePrefab, location, Quaternion.identity);
+            go.GetComponent<Transform>().localScale = size;
+            go.GetComponent<MeshRenderer>().material = material;
+        }
+
+        void PlaceRoom(Vector3Int location, Vector3Int size) {
+            PlaceCube(location, size, redMaterial);
+        }
+
+        void PlaceHallway(Vector3Int location) {
+            PlaceCube(location, new Vector3Int(1, 1, 1), blueMaterial);
+        }
+
+        void PlaceStairs(Vector3Int location) {
+            PlaceCube(location, new Vector3Int(1, 1, 1), greenMaterial);
         }
     }
 }

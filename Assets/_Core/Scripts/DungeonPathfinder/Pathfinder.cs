@@ -7,7 +7,7 @@ namespace _Core.Scripts.DungeonPathfinder
 {
     public class Pathfinder
     {
-        static readonly Vector3Int[] neighbors =
+        private static readonly Vector3Int[] Neighbors =
         {
             new(1, 0, 0),
             new(-1, 0, 0),
@@ -25,77 +25,68 @@ namespace _Core.Scripts.DungeonPathfinder
             new(0, -1, -3),
         };
 
-        Grid<Node> grid;
-        SimplePriorityQueue<Node, float> queue;
-        HashSet<Node> closed;
-        Stack<Vector3Int> stack;
+        private Grid<Node> _grid;
+        private SimplePriorityQueue<Node, float> _queue;
+        private HashSet<Node> _closed;
+        private Stack<Vector3Int> _stack;
 
         public Pathfinder(Vector3Int size)
         {
-            grid = new Grid<Node>(size, Vector3Int.zero);
+            _grid = new Grid<Node>(size, Vector3Int.zero);
+            _queue = new SimplePriorityQueue<Node, float>();
+            _closed = new HashSet<Node>();
+            _stack = new Stack<Vector3Int>();
 
-            queue = new SimplePriorityQueue<Node, float>();
-            closed = new HashSet<Node>();
-            stack = new Stack<Vector3Int>();
-
-            for (int x = 0; x < size.x; x++)
+            for (var x = 0; x < size.x; x++)
+            for (var y = 0; y < size.y; y++)
+            for (var z = 0; z < size.z; z++)
             {
-                for (int y = 0; y < size.y; y++)
-                {
-                    for (int z = 0; z < size.z; z++)
-                    {
-                        grid[x, y, z] = new Node(new Vector3Int(x, y, z));
-                    }
-                }
+                _grid[x, y, z] = new Node(new Vector3Int(x, y, z));
             }
         }
 
         private void ResetNodes()
         {
-            var size = grid.Size;
+            var size = _grid.Size;
 
-            for (int x = 0; x < size.x; x++)
+            for (var x = 0; x < size.x; x++)
+            for (var y = 0; y < size.y; y++)
+            for (var z = 0; z < size.z; z++)
             {
-                for (int y = 0; y < size.y; y++)
-                {
-                    for (int z = 0; z < size.z; z++)
-                    {
-                        var node = grid[x, y, z];
-                        node.Previous = null;
-                        node.Cost = float.PositiveInfinity;
-                        node.PreviousSet.Clear();
-                    }
-                }
+                var node = _grid[x, y, z];
+                node.Previous = null;
+                node.Cost = float.PositiveInfinity;
+                node.PreviousSet.Clear();
             }
         }
 
         public List<Vector3Int> FindPath(Vector3Int start, Vector3Int end, Func<Node, Node, PathCost> costFunction)
         {
             ResetNodes();
-            queue.Clear();
-            closed.Clear();
+            _queue.Clear();
+            _closed.Clear();
 
-            queue = new SimplePriorityQueue<Node, float>();
-            closed = new HashSet<Node>();
+            _queue = new SimplePriorityQueue<Node, float>();
+            _closed = new HashSet<Node>();
 
-            grid[start].Cost = 0;
-            queue.Enqueue(grid[start], 0);
+            _grid[start].Cost = 0;
+            _queue.Enqueue(_grid[start], 0);
 
-            while (queue.Count > 0)
+            while (_queue.Count > 0)
             {
-                Node node = queue.Dequeue();
-                closed.Add(node);
+                var node = _queue.Dequeue();
+                _closed.Add(node);
 
                 if (node.Position == end)
                 {
                     return ReconstructPath(node);
                 }
 
-                foreach (var offset in neighbors)
+                foreach (var offset in Neighbors)
                 {
-                    if (!grid.InBounds(node.Position + offset)) continue;
-                    var neighbor = grid[node.Position + offset];
-                    if (closed.Contains(neighbor)) continue;
+                    if (!_grid.InBounds(node.Position + offset)) continue;
+                    var neighbor = _grid[node.Position + offset];
+                    if (_closed.Contains(neighbor)) continue;
 
                     if (node.PreviousSet.Contains(neighbor.Position))
                     {
@@ -107,10 +98,10 @@ namespace _Core.Scripts.DungeonPathfinder
 
                     if (pathCost.isStairs)
                     {
-                        int xDir = Mathf.Clamp(offset.x, -1, 1);
-                        int zDir = Mathf.Clamp(offset.z, -1, 1);
-                        Vector3Int verticalOffset = new Vector3Int(0, offset.y, 0);
-                        Vector3Int horizontalOffset = new Vector3Int(xDir, 0, zDir);
+                        var xDir = Mathf.Clamp(offset.x, -1, 1);
+                        var zDir = Mathf.Clamp(offset.z, -1, 1);
+                        var verticalOffset = new Vector3Int(0, offset.y, 0);
+                        var horizontalOffset = new Vector3Int(xDir, 0, zDir);
 
                         if (node.PreviousSet.Contains(node.Position + horizontalOffset)
                             || node.PreviousSet.Contains(node.Position + horizontalOffset * 2)
@@ -121,20 +112,20 @@ namespace _Core.Scripts.DungeonPathfinder
                         }
                     }
 
-                    float newCost = node.Cost + pathCost.cost;
+                    var newCost = node.Cost + pathCost.cost;
 
                     if (newCost < neighbor.Cost)
                     {
                         neighbor.Previous = node;
                         neighbor.Cost = newCost;
 
-                        if (queue.TryGetPriority(node, out float existingPriority))
+                        if (_queue.TryGetPriority(node, out var existingPriority))
                         {
-                            queue.UpdatePriority(node, newCost);
+                            _queue.UpdatePriority(node, newCost);
                         }
                         else
                         {
-                            queue.Enqueue(neighbor, neighbor.Cost);
+                            _queue.Enqueue(neighbor, neighbor.Cost);
                         }
 
                         neighbor.PreviousSet.Clear();
@@ -143,10 +134,10 @@ namespace _Core.Scripts.DungeonPathfinder
 
                         if (pathCost.isStairs)
                         {
-                            int xDir = Mathf.Clamp(offset.x, -1, 1);
-                            int zDir = Mathf.Clamp(offset.z, -1, 1);
-                            Vector3Int verticalOffset = new Vector3Int(0, offset.y, 0);
-                            Vector3Int horizontalOffset = new Vector3Int(xDir, 0, zDir);
+                            var xDir = Mathf.Clamp(offset.x, -1, 1);
+                            var zDir = Mathf.Clamp(offset.z, -1, 1);
+                            var verticalOffset = new Vector3Int(0, offset.y, 0);
+                            var horizontalOffset = new Vector3Int(xDir, 0, zDir);
 
                             neighbor.PreviousSet.Add(node.Position + horizontalOffset);
                             neighbor.PreviousSet.Add(node.Position + horizontalOffset * 2);
@@ -162,17 +153,17 @@ namespace _Core.Scripts.DungeonPathfinder
 
         private List<Vector3Int> ReconstructPath(Node node)
         {
-            List<Vector3Int> result = new List<Vector3Int>();
+            var result = new List<Vector3Int>();
 
             while (node != null)
             {
-                stack.Push(node.Position);
+                _stack.Push(node.Position);
                 node = node.Previous;
             }
 
-            while (stack.Count > 0)
+            while (_stack.Count > 0)
             {
-                result.Add(stack.Pop());
+                result.Add(_stack.Pop());
             }
 
             return result;

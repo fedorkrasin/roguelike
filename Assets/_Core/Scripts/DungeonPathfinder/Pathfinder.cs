@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using _Core.Scripts.PriorityQueue;
 using UnityEngine;
 
 namespace _Core.Scripts.DungeonPathfinder
 {
     public class Pathfinder
     {
-        private static readonly Vector3Int[] neighbors =
+        static readonly Vector3Int[] neighbors =
         {
             new(1, 0, 0),
             new(-1, 0, 0),
@@ -24,24 +25,24 @@ namespace _Core.Scripts.DungeonPathfinder
             new(0, -1, -3),
         };
 
-        private Node[,,] grid;
+        Grid<Node> grid;
         SimplePriorityQueue<Node, float> queue;
         HashSet<Node> closed;
         Stack<Vector3Int> stack;
 
         public Pathfinder(Vector3Int size)
         {
-            // grid = new Grid3D<Node>(size, Vector3Int.zero);
+            grid = new Grid<Node>(size, Vector3Int.zero);
 
             queue = new SimplePriorityQueue<Node, float>();
             closed = new HashSet<Node>();
             stack = new Stack<Vector3Int>();
 
-            for (var x = 0; x < size.x; x++)
+            for (int x = 0; x < size.x; x++)
             {
-                for (var y = 0; y < size.y; y++)
+                for (int y = 0; y < size.y; y++)
                 {
-                    for (var z = 0; z < size.z; z++)
+                    for (int z = 0; z < size.z; z++)
                     {
                         grid[x, y, z] = new Node(new Vector3Int(x, y, z));
                     }
@@ -49,7 +50,7 @@ namespace _Core.Scripts.DungeonPathfinder
             }
         }
 
-        void ResetNodes()
+        private void ResetNodes()
         {
             var size = grid.Size;
 
@@ -77,8 +78,8 @@ namespace _Core.Scripts.DungeonPathfinder
             queue = new SimplePriorityQueue<Node, float>();
             closed = new HashSet<Node>();
 
-            grid[start.x, start.y, start.z].Cost = 0;
-            queue.Enqueue(grid[start.x, start.y, start.z], 0);
+            grid[start].Cost = 0;
+            queue.Enqueue(grid[start], 0);
 
             while (queue.Count > 0)
             {
@@ -93,7 +94,7 @@ namespace _Core.Scripts.DungeonPathfinder
                 foreach (var offset in neighbors)
                 {
                     if (!grid.InBounds(node.Position + offset)) continue;
-                    var neighbor = grid[node.Position.x + offset.x, node.Position.y + offset.y, node.Position.z + offset.z];
+                    var neighbor = grid[node.Position + offset];
                     if (closed.Contains(neighbor)) continue;
 
                     if (node.PreviousSet.Contains(neighbor.Position))
@@ -120,7 +121,7 @@ namespace _Core.Scripts.DungeonPathfinder
                         }
                     }
 
-                    var newCost = node.Cost + pathCost.cost;
+                    float newCost = node.Cost + pathCost.cost;
 
                     if (newCost < neighbor.Cost)
                     {
@@ -161,7 +162,7 @@ namespace _Core.Scripts.DungeonPathfinder
 
         private List<Vector3Int> ReconstructPath(Node node)
         {
-            var result = new List<Vector3Int>();
+            List<Vector3Int> result = new List<Vector3Int>();
 
             while (node != null)
             {

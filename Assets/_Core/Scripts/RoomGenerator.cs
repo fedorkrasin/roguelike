@@ -73,7 +73,6 @@ namespace _Core.Scripts
         {
             _rooms = new List<Room>();
             _grid = new Grid<CellType>(new Vector3Int(_mapXSize, _mapYSize, _mapZSize), Vector3Int.zero);
-            _isCellTaken = new bool[_mapXSize, _mapYSize, _mapZSize];
 
             for (var y = 0; y < _mapYSize; y += _yStep)
             for (var z = 0; z < _mapZSize; z += _zStep)
@@ -81,7 +80,7 @@ namespace _Core.Scripts
             {
                 if (Random.Range(0, 10) != 2) continue;
 
-                var position = new Vector3(x, y, z);
+                var position = new Vector3Int(x, y, z);
                 var size = GetRandomRoomSize();
 
                 if (AreCellsEmpty(position, size))
@@ -92,29 +91,28 @@ namespace _Core.Scripts
             }
         }
 
-        private void TakeCells(Vector3 position, Vector3 size)
+        private void TakeCells(Vector3Int position, Vector3Int size)
         {
-            for (var y = (int) position.y; y <= position.y + size.y; y++)
-            for (var z = (int) position.z; z <= position.z + size.z; z++)
-            for (var x = (int) position.x; x <= position.x + size.x; x++)
+            for (var y = position.y; y <= position.y + size.y; y++)
+            for (var z = position.z; z <= position.z + size.z; z++)
+            for (var x = position.x; x <= position.x + size.x; x++)
             {
-                if (x < _isCellTaken.GetLength(0) && y < _isCellTaken.GetLength(1) && z < _isCellTaken.GetLength(2))
+                if (x < _mapXSize && y < _mapYSize && z < _mapZSize)
                 {
                     _grid[x, y, z] = CellType.Room;
-                    _isCellTaken[x, y, z] = true;
                 }
             }
         }
 
-        private bool AreCellsEmpty(Vector3 position, Vector3 size)
+        private bool AreCellsEmpty(Vector3Int position, Vector3Int size)
         {
-            for (var y = (int) position.y; y <= position.y + size.y; y++)
-            for (var z = (int) position.z; z <= position.z + size.z; z++)
-            for (var x = (int) position.x; x <= position.x + size.x; x++)
+            for (var y = position.y; y <= position.y + size.y; y++)
+            for (var z = position.z; z <= position.z + size.z; z++)
+            for (var x = position.x; x <= position.x + size.x; x++)
             {
-                if (x < _isCellTaken.GetLength(0) && y < _isCellTaken.GetLength(1) && z < _isCellTaken.GetLength(2))
+                if (x < _mapXSize && y < _mapYSize && z < _mapZSize)
                 {
-                    if (_isCellTaken[x, y, z])
+                    if (_grid[x, y, z] == CellType.Room)
                     {
                         return false;
                     }
@@ -124,7 +122,7 @@ namespace _Core.Scripts
             return true;
         }
 
-        private void InstantiateRoom(Vector3 position, Vector3 size)
+        private void InstantiateRoom(Vector3Int position, Vector3Int size)
         {
             var room = new GameObject().AddComponent<Room>();
             room.gameObject.name = "Room";
@@ -135,9 +133,9 @@ namespace _Core.Scripts
             _rooms.Add(room);
         }
 
-        private Vector3 GetRandomRoomSize()
+        private Vector3Int GetRandomRoomSize()
         {
-            return new Vector3(Random.Range(1, _maxRoomXSize), Random.Range(1, _maxRoomYSize),
+            return new Vector3Int(Random.Range(1, _maxRoomXSize), Random.Range(1, _maxRoomYSize),
                 Random.Range(1, _maxRoomZSize));
         }
 
@@ -226,7 +224,7 @@ namespace _Core.Scripts
                 var startPos = new Vector3Int((int) startRoom.x, (int) startRoom.y, (int) startRoom.z);
                 var endPos = new Vector3Int((int) endRoom.x, (int) endRoom.y, (int) endRoom.z);
 
-                var path = aStar.FindPath(startPos, endPos, (Node a, Node b) =>
+                var path = aStar.FindPath(startPos, endPos, (a, b) =>
                 {
                     var pathCost = new PathCost();
 
@@ -334,28 +332,28 @@ namespace _Core.Scripts
                     }
                 }
             }
+        }
+        
+        private void PlaceCube(Vector3Int location, Vector3Int size, Material material)
+        {
+            var go = Instantiate(_cubePrefab, location, Quaternion.identity);
+            go.GetComponent<Transform>().localScale = size;
+            go.GetComponent<MeshRenderer>().material = material;
+        }
 
-            void PlaceCube(Vector3Int location, Vector3Int size, Material material)
-            {
-                var go = Instantiate(_cubePrefab, location, Quaternion.identity);
-                go.GetComponent<Transform>().localScale = size;
-                go.GetComponent<MeshRenderer>().material = material;
-            }
+        private void PlaceRoom(Vector3Int location, Vector3Int size)
+        {
+            PlaceCube(location, size, _whiteMaterial);
+        }
 
-            void PlaceRoom(Vector3Int location, Vector3Int size)
-            {
-                PlaceCube(location, size, _whiteMaterial);
-            }
+        private void PlaceHallway(Vector3Int location)
+        {
+            PlaceCube(location, new Vector3Int(1, 1, 1), _blueMaterial);
+        }
 
-            void PlaceHallway(Vector3Int location)
-            {
-                PlaceCube(location, new Vector3Int(1, 1, 1), _blueMaterial);
-            }
-
-            void PlaceStairs(Vector3Int location)
-            {
-                PlaceCube(location, new Vector3Int(1, 1, 1), _redMaterial);
-            }
+        private void PlaceStairs(Vector3Int location)
+        {
+            PlaceCube(location, new Vector3Int(1, 1, 1), _redMaterial);
         }
     }
 }

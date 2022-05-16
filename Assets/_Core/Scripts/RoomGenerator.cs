@@ -11,18 +11,22 @@ namespace _Core.Scripts
     {
         [SerializeField] private Transform _roomsParent;
         [SerializeField] private Transform _corridorsParent;
+        [SerializeField] private Transform _stairsParent;
 
-        [Header("Map")] [SerializeField] private int _mapXSize;
+        [SerializeField] private int _roomsCount;
+
+        [Header("Map")] 
+        [SerializeField] private int _mapXSize;
         [SerializeField] private int _mapYSize;
         [SerializeField] private int _mapZSize;
 
-        [Header("Generating Step")] [SerializeField]
-        private int _xStep;
-
+        [Header("Generating Step")] 
+        [SerializeField] private int _xStep;
         [SerializeField] private int _yStep;
         [SerializeField] private int _zStep;
 
-        [Header("Rooms")] [SerializeField] private int _maxRoomXSize;
+        [Header("Rooms")] 
+        [SerializeField] private int _maxRoomXSize;
         [SerializeField] private int _maxRoomYSize;
         [SerializeField] private int _maxRoomZSize;
 
@@ -85,6 +89,7 @@ namespace _Core.Scripts
 
                 if (AreCellsEmpty(position, size))
                 {
+                    Debug.Log($"{position}, {size}");
                     TakeCells(position, size);
                     InstantiateRoom(position, size);
                 }
@@ -93,10 +98,12 @@ namespace _Core.Scripts
 
         private void TakeCells(Vector3Int position, Vector3Int size)
         {
-            for (var y = position.y; y <= position.y + size.y; y++)
-            for (var z = position.z; z <= position.z + size.z; z++)
-            for (var x = position.x; x <= position.x + size.x; x++)
+            for (var y = position.y - size.y / 2; y <= position.y + size.y / 2; y++)
+            for (var z = position.z - size.z / 2; z <= position.z + size.z / 2; z++)
+            for (var x = position.x - size.x / 2; x <= position.x + size.x / 2; x++)
             {
+                if (x < 0 || y < 0 || z < 0) continue;
+                
                 if (x < _mapXSize && y < _mapYSize && z < _mapZSize)
                 {
                     _grid[x, y, z] = CellType.Room;
@@ -112,7 +119,7 @@ namespace _Core.Scripts
             {
                 if (x < _mapXSize && y < _mapYSize && z < _mapZSize)
                 {
-                    if (_grid[x, y, z] == CellType.Room)
+                    if (_grid[x, y, z] != CellType.None)
                     {
                         return false;
                     }
@@ -124,23 +131,24 @@ namespace _Core.Scripts
 
         private void InstantiateRoom(Vector3Int position, Vector3Int size)
         {
-            var room = new GameObject().AddComponent<Room>();
-            room.gameObject.name = "Room";
-            room.transform.position = position;
-            room.transform.parent = _roomsParent;
-            room.SetSize(size);
-            room.InstantiateRoom();
-            _rooms.Add(room);
+            PlaceRoom(position, size);
         }
 
         private Vector3Int GetRandomRoomSize()
         {
-            return new Vector3Int(Random.Range(1, _maxRoomXSize), Random.Range(1, _maxRoomYSize),
-                Random.Range(1, _maxRoomZSize));
+            var x = Random.Range(1, _maxRoomXSize);
+            var y = Random.Range(1, _maxRoomYSize);
+            var z = Random.Range(1, _maxRoomZSize);
+            if (x % 2 == 0) x--;
+            if (y % 2 == 0) y--;
+            if (z % 2 == 0) z--;
+            return new Vector3Int(x, y, z);
         }
 
         private void GenerateCorridors()
         {
+            _corridors = new List<Corridor>();
+            
             var roomPoints = _rooms.Select(room => new Point(room.transform.position)).ToList();
             var roomsTriangulation = DelaunayTriangulation.DelaunayTriangulation.Triangulate(roomPoints);
             var roomsMst = MinimumSpanningTree.Build(roomsTriangulation);
@@ -219,8 +227,6 @@ namespace _Core.Scripts
                 var startRoom = corridor.Start;
                 var endRoom = corridor.End;
 
-                // var startPosf = startRoom.bounds.center;
-                // var endPosf = endRoom.bounds.center;
                 var startPos = new Vector3Int((int) startRoom.x, (int) startRoom.y, (int) startRoom.z);
                 var endPos = new Vector3Int((int) endRoom.x, (int) endRoom.y, (int) endRoom.z);
 
@@ -232,37 +238,34 @@ namespace _Core.Scripts
 
                     if (delta.y == 0)
                     {
-                        //flat hallway
                         pathCost.cost = Vector3Int.Distance(b.Position, endPos); //heuristic
 
-                        if (_grid[b.Position] == CellType.Stairs)
+                        switch (_grid[b.Position])
                         {
-                            return pathCost;
-                        }
-                        else if (_grid[b.Position] == CellType.Room)
-                        {
-                            pathCost.cost += 5;
-                        }
-                        else if (_grid[b.Position] == CellType.None)
-                        {
-                            pathCost.cost += 1;
+                            case CellType.Stairs:
+                                return pathCost;
+                            case CellType.Room:
+                                pathCost.cost += 5;
+                                break;
+                            case CellType.None:
+                                pathCost.cost += 1;
+                                break;
                         }
 
                         pathCost.traversable = true;
                     }
                     else
                     {
-                        //staircase
                         if ((_grid[a.Position] != CellType.None && _grid[a.Position] != CellType.Corridor)
                             || (_grid[b.Position] != CellType.None && _grid[b.Position] != CellType.Corridor))
                             return pathCost;
 
-                        pathCost.cost = 100 + Vector3Int.Distance(b.Position, endPos); //base cost + heuristic
+                        pathCost.cost = 100 + Vector3Int.Distance(b.Position, endPos);
 
-                        int xDir = Mathf.Clamp(delta.x, -1, 1);
-                        int zDir = Mathf.Clamp(delta.z, -1, 1);
-                        Vector3Int verticalOffset = new Vector3Int(0, delta.y, 0);
-                        Vector3Int horizontalOffset = new Vector3Int(xDir, 0, zDir);
+                        var xDir = Mathf.Clamp(delta.x, -1, 1);
+                        var zDir = Mathf.Clamp(delta.z, -1, 1);
+                        var verticalOffset = new Vector3Int(0, delta.y, 0);
+                        var horizontalOffset = new Vector3Int(xDir, 0, zDir);
 
                         if (!_grid.InBounds(a.Position + verticalOffset)
                             || !_grid.InBounds(a.Position + horizontalOffset)
@@ -288,7 +291,7 @@ namespace _Core.Scripts
 
                 if (path != null)
                 {
-                    for (int i = 0; i < path.Count; i++)
+                    for (var i = 0; i < path.Count; i++)
                     {
                         var current = path[i];
 
@@ -305,10 +308,10 @@ namespace _Core.Scripts
 
                             if (delta.y != 0)
                             {
-                                int xDir = Mathf.Clamp(delta.x, -1, 1);
-                                int zDir = Mathf.Clamp(delta.z, -1, 1);
-                                Vector3Int verticalOffset = new Vector3Int(0, delta.y, 0);
-                                Vector3Int horizontalOffset = new Vector3Int(xDir, 0, zDir);
+                                var xDir = Mathf.Clamp(delta.x, -1, 1);
+                                var zDir = Mathf.Clamp(delta.z, -1, 1);
+                                var verticalOffset = new Vector3Int(0, delta.y, 0);
+                                var horizontalOffset = new Vector3Int(xDir, 0, zDir);
 
                                 _grid[prev + horizontalOffset] = CellType.Stairs;
                                 _grid[prev + horizontalOffset * 2] = CellType.Stairs;
@@ -323,37 +326,43 @@ namespace _Core.Scripts
                         }
                     }
 
-                    foreach (var pos in path)
+                    foreach (var pos in path.Where(pos => _grid[pos] == CellType.Corridor))
                     {
-                        if (_grid[pos] == CellType.Corridor)
-                        {
-                            PlaceHallway(pos);
-                        }
+                        PlaceCorridor(pos);
                     }
                 }
             }
         }
         
-        private void PlaceCube(Vector3Int location, Vector3Int size, Material material)
+        private GameObject PlaceCube(Vector3Int location, Vector3Int size, Material material)
         {
-            var go = Instantiate(_cubePrefab, location, Quaternion.identity);
-            go.GetComponent<Transform>().localScale = size;
-            go.GetComponent<MeshRenderer>().material = material;
+            var cube = Instantiate(_cubePrefab, location, Quaternion.identity);
+            cube.GetComponent<Transform>().localScale = size;
+            cube.GetComponent<MeshRenderer>().material = material;
+            return cube;
         }
 
         private void PlaceRoom(Vector3Int location, Vector3Int size)
         {
-            PlaceCube(location, size, _whiteMaterial);
+            var room = PlaceCube(location, size, _whiteMaterial);
+            room.transform.parent = _roomsParent;
+            room.name = "Room";
+            room.AddComponent<Room>().SetSize(size);
+            _rooms.Add(room.GetComponent<Room>());
         }
 
-        private void PlaceHallway(Vector3Int location)
+        private void PlaceCorridor(Vector3Int location)
         {
-            PlaceCube(location, new Vector3Int(1, 1, 1), _blueMaterial);
+            var corridor = PlaceCube(location, new Vector3Int(1, 1, 1), _blueMaterial);
+            corridor.transform.parent = _corridorsParent;
+            corridor.name = "Corridor";
         }
 
         private void PlaceStairs(Vector3Int location)
         {
-            PlaceCube(location, new Vector3Int(1, 1, 1), _redMaterial);
+            var stairs = PlaceCube(location, new Vector3Int(1, 1, 1), _redMaterial);
+            stairs.transform.parent = _stairsParent;
+            stairs.name = "Stairs";
         }
     }
 }

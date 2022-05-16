@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Linq;
+using UnityEngine;
 
 namespace _Core.Scripts.DungeonPathfinder
 {
@@ -45,6 +46,11 @@ namespace _Core.Scripts.DungeonPathfinder
                 pos += Offset;
                 _data[GetIndex(pos)] = value;
             }
+        }
+
+        public override string ToString()
+        {
+            return _data.Aggregate(", ", (current, item) => current + item);
         }
     }
 }

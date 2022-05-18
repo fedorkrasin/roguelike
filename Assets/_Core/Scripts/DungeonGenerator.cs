@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using _Core.Scripts.DelaunayTriangulation;
@@ -21,6 +22,7 @@ namespace _Core.Scripts
 
         [Space] [Range(0, 1)] [SerializeField] private float _corridorGeneratingChance;
 
+        [SerializeField] private TileBuilders _mode;
         [SerializeField] private CubeTileBuilder _cubeTileBuilder;
         [SerializeField] private DungeonTileBuilder _dungeonTileBuilder;
 
@@ -33,12 +35,21 @@ namespace _Core.Scripts
 
         public void Start()
         {
-            _tileBuilder = _cubeTileBuilder;
+            ChooseBuilder();
             ClearRooms();
             ClearCorridors();
             GenerateRooms();
             GenerateCorridors();
             CalculateCorridors();
+        }
+
+        private void ChooseBuilder()
+        {
+            _tileBuilder = _mode switch
+            {
+                TileBuilders.Cube => _cubeTileBuilder,
+                TileBuilders.Dungeon => _dungeonTileBuilder
+            };
         }
 
         private void GenerateRooms()

@@ -12,6 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 53f07797430643d884463fd878aa1c0a, type: 3}
   m_Name: Dungeon Tiles
   m_EditorClassIdentifier: 
-  _roomPrefab: {fileID: 0}
-  _corridorPrefab: {fileID: 0}
-  _stairsPrefab: {fileID: 0}
+  _roomPrefab: {fileID: 5952378459966799993, guid: bbc67a8ac20d4d9448b5e497d39a3825, type: 3}
+  _corridorPrefab: {fileID: 1735900537613488410, guid: 18a57a85a574d6c48aba71f07872c3da, type: 3}
+  _stairsPrefab: {fileID: 4974491418833915271, guid: b60e16a6f41aa534a9a7bb1c76bdf32a, type: 3}
